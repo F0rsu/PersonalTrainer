@@ -2,28 +2,75 @@ import React, { useState, useEffect } from "react";
 import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-material.css";
-
+import AddTraining from "./AddTraining";
 import dayjs from "dayjs";
-
-
+import IconButton from "@mui/material/IconButton";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 
 
 export default function TrainingList(){
     const [trainings, setTrainings] = useState([]);
+    const [msg, setMsg] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+    
+    
+    const fetchTrainings = () => {
+      console.log("haetaan treenejä");
+      fetch("https://traineeapp.azurewebsites.net/gettrainings")
+      .then((response) => response.json())
+      .then((data) => setTrainings(data));
+    }
+    
+   
+   
+   
+    
+    const addTraining = (training) => {
+      console.log(training);
+      fetch("https://traineeapp.azurewebsites.net/api/trainings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(training),
+      }).then((response) => {
+        if (response.ok) {
+          fetchTrainings();
+        }
+      });
+    };
+   
+   
+  const deleteTraining = (link) => {
+    if (window.confirm("Are you sure?")) {
+      fetch(link, { method: "DELETE" })
+        .then((response) => {
+          if (response.ok) {
+            setMsg("Customer deleted");
+            setOpen(true);
+            fetchTrainings();
+          } else {
+            alert("Something went wrong");
+          }
+        })
+        .catch((err) => console.log("err"));
+    }
+  };
+
+
+
+
+
+
+
+
     
     useEffect(()=>{
         fetchTrainings();
     }, [])
+   
     
-
-    const fetchTrainings = () => {
-        console.log("haetaan treenejä");
-        fetch("https://traineeapp.azurewebsites.net/gettrainings")
-        .then((response) => response.json())
-        .then((data) => setTrainings(data));
-    }
-    
+   
+   
    
     const [columnDefs, setColumnDefs] = useState([
         
@@ -48,12 +95,25 @@ export default function TrainingList(){
             floatingFilter: true,
             cellRenderer: (params) => (
               <div>
-                {params.value.firstname} {params.value.lastname}
+                {params.value ? `${params.value.firstname} ${params.value.lastname}` : ''}
               </div>
+            )
+            
+          },
+          {
+            headerName: "",
+            width: 100,
+            field: "links.0.href",
+            cellRenderer: (params) => (
+              <IconButton color="error" onClick={() => deleteTraining(params.value)}>
+                <DeleteIcon />
+              </IconButton>
             ),
           },
-
-    ])
+    
+    
+    
+        ])
         
 
 
@@ -75,6 +135,10 @@ export default function TrainingList(){
             pagination={true}
           />
         </div>
+        
+        <AddTraining addTraining={addTraining} trainings={trainings} type="training" />
+        
+        
         </div>
         
     )
